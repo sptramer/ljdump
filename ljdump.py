@@ -47,17 +47,17 @@ MimeExtensions = {
 from hashlib import md5
 
 def calcchallenge(challenge, password):
-    return md5(challenge+md5(password).hexdigest()).hexdigest()
+    return md5(challenge.encode("UTF-8")+md5(password.encode("UTF-8")).hexdigest().encode("UTF-8")).hexdigest()
 
 def flatresponse(response):
     r = {}
     while True:
-        name = response.readline()
+        name = str(response.readline(), "UTF-8")
         if len(name) == 0:
             break
         if name[-1] == '\n':
             name = name[:len(name)-1]
-        value = response.readline()
+        value = str(response.readline(), "UTF-8")
         if value[-1] == '\n':
             value = value[:len(value)-1]
         r[name] = value
@@ -67,7 +67,9 @@ def getljsession(server, username, password):
     r = urllib.request.urlopen(server+"/interface/flat", b"mode=getchallenge")
     response = flatresponse(r)
     r.close()
-    r = urllib.request.urlopen(server+"/interface/flat", b"mode=sessiongenerate&user=%s&auth_method=challenge&auth_challenge=%s&auth_response=%s" % (username, response['challenge'], calcchallenge(response['challenge'], password)))
+    r = urllib.request.urlopen(server +"/interface/flat",
+                               "mode=sessiongenerate&user={}&auth_method=challenge&auth_challenge={}&auth_response={}".format(
+                                   username, response['challenge'], calcchallenge(response['challenge'], password)).encode("UTF-8"))
     response = flatresponse(r)
     r.close()
     return response['ljsession']
@@ -82,16 +84,23 @@ def dochallenge(server, params, password):
     return params
 
 def dumpelement(f, name, e):
+    def wrap(input, encoding = "UTF-8"):
+        if isinstance(input, "".__class__):
+            return input
+        if isinstance(input, bytes().__class__):
+            return str(input, encoding)
+        return str(input)
+
     f.write("<%s>\n" % name)
     for k in list(e.keys()):
         if isinstance(e[k], {}.__class__):
             dumpelement(f, k, e[k])
         else:
             try:
-                s = str(e[k], "UTF-8")
+                s = wrap(e[k])
             except UnicodeDecodeError:
                 # fall back to Latin-1 for old entries that aren't UTF-8
-                s = str(e[k], "cp1252")
+                s = wrap(e[k], "cp1252")
             f.write("<%s>%s</%s>\n" % (k, saxutils.escape(s), k))
     f.write("</%s>\n" % name)
 
@@ -338,7 +347,7 @@ def ljdump(Server, Username, Password, Journal, verbose=True):
     if Username == Journal:
         if verbose:
             print(("Fetching userpics for: %s" % Username))
-        f = open("%s/userpics.xml" % Username, "wb")
+        f = open("%s/userpics.xml" % Username, "w")
         print("""<?xml version="1.0"?>""", file=f)
         print("<userpics>", file=f)
         for p in userpics:
