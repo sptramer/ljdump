@@ -25,14 +25,13 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
 
-import xml.dom.minidom 
-import os
-import codecs
-import sys
 import getopt
+import os
 import re
-
+import sys
+import xml.dom.minidom
 from time import strptime, strftime
+
 
 def getNodeText(doc, nodename):
     rc = ""
@@ -56,11 +55,11 @@ def appendTextNode(doc, parent, nodename, value):
         bytes = nodeValue.encode("UTF-8")
     except:
         bytes = nodeValue.encode("cp1252")
-        nodeValue = unicode(bytes, "UTF-8")
+        nodeValue = str(bytes, "UTF-8")
 
     element = doc.createElement(nodename)
 
-    if( nodeValue != "" ): 
+    if nodeValue != "":
         textNode = doc.createTextNode(nodeValue)
         element.appendChild(textNode)
 
@@ -92,24 +91,24 @@ def addEntryForId(outDoc, element, username, id, includeSecure):
 
     security = getNodeText(inDoc, "security")
 
-    if(security != ""):
+    if security != "":
         # don't append this entry unless the user provided the argument
-        if(includeSecure == False):
-            print("omitting secure entry: L-%s" % id)
+        if includeSecure == False:
+            print(("omitting secure entry: L-%s" % id))
             return 
         else:
-            if(security == "usemask"):
-                print("including allowmask entry: L-%s" % id)
+            if security == "usemask":
+                print(("including allowmask entry: L-%s" % id))
 
                 # Create an allowmask element 
                 maskText = getNodeText(inDoc, "allowmask")
 
-                if(maskText != ""):
+                if maskText != "":
                     appendTextNode(outDoc, entry, "allowmask", maskText)
                 else:
                     appendTextNode(outDoc, entry, "allowmask", "0")
             else:
-                print("including private entry: L-%s" % id)
+                print(("including private entry: L-%s" % id))
 
         appendTextNode(outDoc, entry, "security", security)
 
@@ -142,7 +141,7 @@ def addCommentsForId(outDoc, entry, username, id):
 
         # convert the time string
         timeString = getNodeText(comment, "date")
-        if( timeString != "" ):
+        if timeString != "":
             inDate = strptime(timeString, "%Y-%m-%dT%H:%M:%SZ")
             outDate = strftime("%Y-%m-%d %H:%M:%S", inDate)
             appendTextNode(outDoc, outComment, "eventtime", outDate)
@@ -172,7 +171,7 @@ def addCommentsForId(outDoc, entry, username, id):
         
         # Create the parent_itemid
         parentId = getNodeText(comment, "parentid")
-        if(parentId != ""): 
+        if parentId != "":
             appendTextNode(outDoc, outComment, "parent_itemid", parentId)
 
 
@@ -231,9 +230,9 @@ Example:
 def main(argv): 
     username = ""
     entryLimit = 250
-    includeSecure = False;
+    includeSecure = False
 
-    if( len(argv) == 0 ):
+    if len(argv) == 0:
         usage()
         sys.exit(2)
 
@@ -242,9 +241,9 @@ def main(argv):
                                                             "user=",
                                                             "limit=",
                                                             "insecure"])
-    except getopt.GetoptError, err:
+    except getopt.GetoptError as err:
         # print help information and exit:
-        print str(err) # will print something like "option -a not recognized"
+        print(str(err)) # will print something like "option -a not recognized"
         usage()
         sys.exit(2)
 
@@ -276,7 +275,7 @@ def main(argv):
 
             entryArray.append(entryNum)
 
-            if( highNum < entryNum ):
+            if highNum < entryNum:
                 highNum = entryNum
 
     entryArray.sort()
@@ -296,7 +295,7 @@ def main(argv):
 
         currentFileEntry += 1
 
-        if( currentFileEntry == entryLimit or entry == entryArray[-1] ):
+        if currentFileEntry == entryLimit or entry == entryArray[-1]:
 
             f = open("%s - %s.xml" % (username, entry), "w")
             tempXML = outDoc.toxml("UTF-8")
